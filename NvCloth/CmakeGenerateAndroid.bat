@@ -24,19 +24,15 @@ set CMAKE=%PM_cmake_PATH%/bin/cmake.exe
 
 REM Generate projects here
 
-:: 1. Use system NDK
-IF %ANDROID_NDK_ROOT%. EQU . (
-	echo The ANDROID_NDK_ROOT environment variable is not set. Please set it to point to NDK root folder
+:: Use system NDK
+set ANDROID_NDK=%NDKROOT%
+
+IF %ANDROID_NDK%. EQU . (
+	echo The ANDROID_NDK environment variable is not set. Please set it to point to NDK root folder
 	set EXIT_CODE=1
 	GOTO :End
 )
-set "NDK=%ANDROID_NDK_ROOT:\=/%"
-set "NDK_MAKE=%NDK%/prebuilt/windows-x86_64/bin/make.exe"
-:: 2. Use NDK from physx externals
-REM set "PHYSX_ROOT=%GW_DEPS_ROOT:\=/%sw/physx"
-REM set "NDK=%PHYSX_ROOT%/externals/android-ndk/r13b-win32"
-REM set "NDK_MAKE=%NDK%/prebuilt/windows/bin/make.exe"
-::
+set "NDK_MAKE=%ANDROID_NDK%/prebuilt/windows-x86_64/bin/make.exe"
 
 :: IF [%1] == [] 
 set CONFIG_NAME=%1
@@ -71,15 +67,13 @@ REM https://cmake.org/cmake/help/v3.7/manual/cmake-toolchains.7.html#cross-compi
 REM https://developer.android.com/ndk/guides/cmake.html
 
 REM REM Common cmd line params
-set CMAKE_COMMON_PARAMS=-DANDROID_NDK=%NDK% -DANDROID_ABI=%ANDROID_ABI% -DGW_DEPS_ROOT=%GW_DEPS_ROOT% -DPX_OUTPUT_DLL_DIR=%PX_OUTPUT_ROOT%\Bin\%ANDROID_DIR_NAME% -DPX_OUTPUT_LIB_DIR=%PX_OUTPUT_ROOT%\Lib\%ANDROID_DIR_NAME% -DPX_OUTPUT_EXE_DIR=%PX_OUTPUT_ROOT%\Bin\%ANDROID_DIR_NAME% -DPX_STATIC_LIBRARIES=1
+set CMAKE_COMMON_PARAMS=-DANDROID_NDK=%ANDROID_NDK% -DANDROID_ABI=%ANDROID_ABI% -DGW_DEPS_ROOT=%GW_DEPS_ROOT% -DPX_OUTPUT_DLL_DIR=%PX_OUTPUT_ROOT%\Bin\%ANDROID_DIR_NAME% -DPX_OUTPUT_LIB_DIR=%PX_OUTPUT_ROOT%\Lib\%ANDROID_DIR_NAME% -DPX_OUTPUT_EXE_DIR=%PX_OUTPUT_ROOT%\Bin\%ANDROID_DIR_NAME% -DPX_STATIC_LIBRARIES=1
 
 REM Compiler dependent cmd line params
 set CMAKE_COMPILER_PARAMS=-G "MinGW Makefiles" -DCMAKE_MAKE_PROGRAM=%NDK_MAKE% -DCMAKE_BUILD_TYPE=%CONFIG_NAME% -DCMAKE_ANDROID_ARCH_ABI=%ANDROID_ABI%
-REM set CMAKE_COMPILER_PARAMS=-G "Visual Studio 14 2015" -DCMAKE_ANDROID_ARCH=%ANDROID_ABI%
 
 REM Toolchain dependent cmd line params
-set CMAKE_TOOLCHAIN_PARAMS=-DCMAKE_TOOLCHAIN_FILE=%GW_DEPS_ROOT%\NvCloth\Externals\CMakeModules\android\android.toolchain.cmake -DANDROID_NATIVE_API_LEVEL=android-%ANDROID_API% -DANDROID_ABI=%ANDROID_ABI% -DANDROID_STL="gnustl_static" -DTARGET_BUILD_PLATFORM=android
-REM set CMAKE_TOOLCHAIN_PARAMS=-DCMAKE_SYSTEM_NAME=Android -DCMAKE_ANDROID_API_MIN=%ANDROID_API% -DCMAKE_ANDROID_API=%ANDROID_API%
+set CMAKE_TOOLCHAIN_PARAMS=-DCMAKE_TOOLCHAIN_FILE=%ANDROID_NDK%\build\cmake\android.toolchain.cmake -DANDROID_NATIVE_API_LEVEL=android-%ANDROID_API% -DANDROID_ABI=%ANDROID_ABI% -DANDROID_STL="c++_static" -DTARGET_BUILD_PLATFORM=android
 
 %CMAKE% ..\cmake\android %CMAKE_COMPILER_PARAMS%  %CMAKE_TOOLCHAIN_PARAMS%  %CMAKE_COMMON_PARAMS%
 IF %ERRORLEVEL% NEQ 0 (
@@ -87,14 +81,16 @@ IF %ERRORLEVEL% NEQ 0 (
 	GOTO :End
 )
 
+REM Build
+%CMAKE% --build .  -- -j5
+
+popd
+
 REM reference cmd line
 REM cmake ..\cmake\android -G "MinGW Makefiles" -DANDROID_NDK=%NDK% -DCMAKE_MAKE_PROGRAM=%NDK_MAKE% -DTARGET_BUILD_PLATFORM=android -DCMAKE_BUILD_TYPE=%CONFIG_NAME% -DCMAKE_SYSTEM_NAME=Android -DCMAKE_ANDROID_API_MIN=%ANDROID_API% -DCMAKE_ANDROID_API=%ANDROID_API% -DCMAKE_ANDROID_ARCH=%ANDROID_ABI% -DCMAKE_ANDROID_ARCH_ABI=%ANDROID_ABI% -DANDROID_ABI=%ANDROID_ABI% -DCMAKE_ANDROID_GUI=FALSE -DPX_GENERATE_GPU_PROJECTS=0 -DPX_OUTPUT_DLL_DIR=%PX_OUTPUT_ROOT%\Bin\%ANDROID_DIR_NAME%-cmake -DPX_OUTPUT_LIB_DIR=%PX_OUTPUT_ROOT%\Lib\%ANDROID_DIR_NAME%-cmake -DPX_OUTPUT_EXE_DIR=%PX_OUTPUT_ROOT%\Bin\%ANDROID_DIR_NAME%-cmake
 
 REM To build the project, go to compiler/%ANDROID_DIR_NAME% and run
 REM %ANDROID_NDK_ROOT%\prebuilt\windows-x86_64\bin\make.exe 
-
-popd
-
 
 GOTO :End
 

@@ -61,3 +61,6 @@ ENDIF()
 
 # include common low level settings
 INCLUDE(../common/NvCloth.cmake)
+
+MESSAGE(STATUS "Stripping with ${CMAKE_STRIP}")
+add_custom_command(TARGET NvCloth POST_BUILD COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:NvCloth>)
